@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모바일 접속 안내</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+        .url-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+            word-break: break-all;
+            border: 2px solid #dee2e6;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .instructions {
+            text-align: left;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 모바일 접속 안내</h1>
+        <p>미국 주식 뉴스 트래커를 모바일에서도 사용하실 수 있습니다!</p>
+        
+        <div class="url-box">
+            <strong>접속 주소:</strong><br>
+            <span id="accessUrl">-</span>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 접속 방법:</h3>
+            <ol>
+                <li>모바일 기기와 PC가 같은 Wi-Fi 네트워크에 연결되어 있는지 확인</li>
+                <li>모바일 브라우저에서 위 주소로 접속</li>
+                <li>또는 QR 코드를 스캔하여 접속</li>
+            </ol>
+        </div>
+        
+        <div class="qr-code">
+            <div id="qrcode"></div>
+        </div>
+        
+        <a id="openBtn" href="#" class="btn" target="_blank">
+            🚀 지금 접속하기
+        </a>
+        
+        <div style="margin-top: 30px; font-size: 0.9em; color: #666;">
+            <p><strong>참고:</strong></p>
+            <p>• PC와 모바일이 같은 Wi-Fi에 연결되어야 합니다</p>
+            <p>• 방화벽이 차단할 수 있으니 필요시 허용해주세요</p>
+            <p>• 서버가 실행 중일 때만 접속 가능합니다</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // 현재 접속한 호스트 기준으로 동적 URL 구성
+        (function(){
+            var origin = window.location.protocol + '//' + window.location.host;
+            var url = origin + '/stock_news_tracker.html';
+            document.getElementById('accessUrl').textContent = url;
+            var openBtn = document.getElementById('openBtn');
+            openBtn.href = url;
+
+            // QR 코드 생성
+            QRCode.toCanvas(document.getElementById('qrcode'), url, {
+                width: 200,
+                height: 200,
+                color: { dark: '#000000', light: '#FFFFFF' }
+            }, function (error) { if (error) console.error(error); });
+        })();
+    </script>
+</body>
+</html>
