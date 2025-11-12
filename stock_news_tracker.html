@@ -2928,14 +2928,14 @@
       loadNews();
     })();
 
-    // 자동 새로고침 (10분마다)
-    setInterval(refreshNews, 10 * 60 * 1000);
+    // 자동 새로고침 (1시간마다)
+    setInterval(refreshNews, 60 * 60 * 1000);
     
-    // 오래된 뉴스 정리 (10분마다)
+    // 오래된 뉴스 정리 (1시간마다)
     setInterval(() => {
       const storedNews = loadStoredNews();
       saveStoredNews(storedNews); // 48시간 이상 된 뉴스 자동 삭제
-    }, 10 * 60 * 1000);
+    }, 60 * 60 * 1000);
   </script>
 </body>
 </html>
