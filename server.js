@@ -4,6 +4,7 @@ const path = require('path');
 
 const PORT = 8000;
 const baseDir = __dirname;
+const STOCKS_DATA_FILE = path.join(baseDir, 'stocks_data.json');
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -23,6 +24,30 @@ const mimeTypes = {
   '.wasm': 'application/wasm'
 };
 
+// 종목 데이터 파일 읽기
+function readStocksData() {
+  try {
+    if (fs.existsSync(STOCKS_DATA_FILE)) {
+      const data = fs.readFileSync(STOCKS_DATA_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('종목 데이터 읽기 실패:', error);
+  }
+  return { sectorOverrides: {}, customStocks: {} };
+}
+
+// 종목 데이터 파일 쓰기
+function writeStocksData(data) {
+  try {
+    fs.writeFileSync(STOCKS_DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (error) {
+    console.error('종목 데이터 쓰기 실패:', error);
+    return false;
+  }
+}
+
 const server = http.createServer((req, res) => {
   console.log(`${req.method} ${req.url}`);
 
@@ -35,6 +60,39 @@ const server = http.createServer((req, res) => {
     res.writeHead(200);
     res.end();
     return;
+  }
+
+  // 종목 데이터 API
+  if (req.url === '/api/stocks' || req.url === '/api/stocks/') {
+    if (req.method === 'GET') {
+      // 종목 데이터 읽기
+      const data = readStocksData();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data), 'utf-8');
+      return;
+    } else if (req.method === 'POST') {
+      // 종목 데이터 저장
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (writeStocksData(data)) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }), 'utf-8');
+          } else {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: '저장 실패' }), 'utf-8');
+          }
+        } catch (error) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: '잘못된 데이터 형식' }), 'utf-8');
+        }
+      });
+      return;
+    }
   }
 
   let filePath = '.' + req.url;

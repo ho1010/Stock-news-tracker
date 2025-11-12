@@ -1250,37 +1250,144 @@
       if (totalEl) totalEl.textContent = allStocks.length;
     }
 
-    function applyCustomStocksFromStorage() {
+    // 서버에서 종목 데이터 로드
+    async function loadStocksFromServer() {
       try {
+        const response = await fetch('/api/stocks');
+        if (!response.ok) {
+          console.warn('서버에서 종목 데이터를 가져올 수 없습니다. localStorage를 사용합니다.');
+          return null;
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.warn('서버 연결 실패, localStorage를 사용합니다:', error);
+        return null;
+      }
+    }
+
+    // 서버에 종목 데이터 저장
+    async function saveStocksToServer(data) {
+      try {
+        const response = await fetch('/api/stocks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          console.warn('서버에 종목 데이터를 저장할 수 없습니다.');
+          return false;
+        }
+        const result = await response.json();
+        return result.success === true;
+      } catch (error) {
+        console.warn('서버 저장 실패:', error);
+        return false;
+      }
+    }
+
+    // 서버와 localStorage 데이터 병합
+    function mergeStocksData(serverData, localData) {
+      const merged = {
+        sectorOverrides: {},
+        customStocks: {}
+      };
+
+      // 서버 데이터가 있으면 우선 사용
+      if (serverData && serverData.sectorOverrides) {
+        Object.assign(merged.sectorOverrides, serverData.sectorOverrides);
+      }
+      if (serverData && serverData.customStocks) {
+        Object.assign(merged.customStocks, serverData.customStocks);
+      }
+
+      // localStorage 데이터 병합 (서버 데이터가 없거나 더 최신인 경우)
+      if (localData) {
+        if (localData.sectorOverrides) {
+          Object.keys(localData.sectorOverrides).forEach(key => {
+            if (!merged.sectorOverrides[key] || 
+                JSON.stringify(merged.sectorOverrides[key]) !== JSON.stringify(localData.sectorOverrides[key])) {
+              merged.sectorOverrides[key] = localData.sectorOverrides[key];
+            }
+          });
+        }
+        if (localData.customStocks) {
+          Object.keys(localData.customStocks).forEach(key => {
+            if (!merged.customStocks[key]) {
+              merged.customStocks[key] = localData.customStocks[key];
+            }
+          });
+        }
+      }
+
+      return merged;
+    }
+
+    async function applyCustomStocksFromStorage() {
+      try {
+        // 서버에서 데이터 로드 시도
+        const serverData = await loadStocksFromServer();
+        
+        // localStorage에서 데이터 로드
+        const localSectorOverrides = localStorage.getItem(SECTOR_OVERRIDES_KEY);
+        const localCustomStocks = localStorage.getItem(CUSTOM_STOCKS_KEY);
+        
+        const localData = {
+          sectorOverrides: localSectorOverrides ? JSON.parse(localSectorOverrides) : {},
+          customStocks: localCustomStocks ? JSON.parse(localCustomStocks) : {}
+        };
+
+        // 서버와 localStorage 데이터 병합
+        const mergedData = mergeStocksData(serverData, localData);
+
+        // 병합된 데이터를 localStorage에 저장 (동기화)
+        if (Object.keys(mergedData.sectorOverrides).length > 0) {
+          localStorage.setItem(SECTOR_OVERRIDES_KEY, JSON.stringify(mergedData.sectorOverrides));
+        }
+        if (Object.keys(mergedData.customStocks).length > 0) {
+          localStorage.setItem(CUSTOM_STOCKS_KEY, JSON.stringify(mergedData.customStocks));
+        }
+
+        // 서버 데이터가 있고 localStorage와 다르면 서버에 저장 (동기화)
+        if (serverData && (
+          JSON.stringify(mergedData.sectorOverrides) !== JSON.stringify(serverData.sectorOverrides || {}) ||
+          JSON.stringify(mergedData.customStocks) !== JSON.stringify(serverData.customStocks || {})
+        )) {
+          await saveStocksToServer(mergedData);
+        }
+
         // 섹터별 전체 오버라이드 적용 (있으면 우선)
-        const ovRaw = localStorage.getItem(SECTOR_OVERRIDES_KEY);
-        if (ovRaw) {
-          const ov = JSON.parse(ovRaw);
-          Object.keys(ov).forEach(key => {
+        if (mergedData.sectorOverrides) {
+          Object.keys(mergedData.sectorOverrides).forEach(key => {
             const idx = parseInt(key);
             if (Number.isInteger(idx) && sectors[idx]) {
-              const arr = (ov[key] || []).map(s => String(s).toUpperCase()).filter(Boolean);
+              const arr = (mergedData.sectorOverrides[key] || []).map(s => String(s).toUpperCase()).filter(Boolean);
               sectors[idx].stocks = Array.from(new Set(arr));
             }
           });
         }
 
-        const raw = localStorage.getItem(CUSTOM_STOCKS_KEY);
-        if (!raw) return;
-        const map = JSON.parse(raw);
-        Object.keys(map).forEach(key => {
-          const idx = parseInt(key);
-          if (Number.isInteger(idx) && sectors[idx]) {
-            const addList = (map[key] || []).map(s => String(s).toUpperCase());
-            addList.forEach(t => {
-              if (!sectors[idx].stocks.includes(t)) {
-                sectors[idx].stocks.push(t);
-              }
-            });
-          }
-        });
+        // 커스텀 종목 추가
+        if (mergedData.customStocks) {
+          Object.keys(mergedData.customStocks).forEach(key => {
+            const idx = parseInt(key);
+            if (Number.isInteger(idx) && sectors[idx]) {
+              const addList = (mergedData.customStocks[key] || []).map(s => String(s).toUpperCase());
+              addList.forEach(t => {
+                if (!sectors[idx].stocks.includes(t)) {
+                  sectors[idx].stocks.push(t);
+                }
+              });
+            }
+          });
+        }
+        
         rebuildAllStocks();
-      } catch {}
+      } catch (error) {
+        console.error('종목 데이터 로드 실패:', error);
+      }
     }
 
     // ===== 종목 관리 (삭제/편집) =====
@@ -1628,7 +1735,7 @@
     }
 
 
-    function saveManagedStocks() {
+    async function saveManagedStocks() {
       const idx = parseInt(document.getElementById('manageSector').value);
       if (!Number.isInteger(idx) || !sectors[idx]) { closeManageStocks(); return; }
       
@@ -1650,13 +1757,27 @@
         sectors[idx].stocks = unique;
       }
 
-      // 섹터 오버라이드 저장
+      // 섹터 오버라이드 저장 (localStorage)
       try {
         const raw = localStorage.getItem(SECTOR_OVERRIDES_KEY);
         const map = raw ? JSON.parse(raw) : {};
         map[idx] = unique;
         localStorage.setItem(SECTOR_OVERRIDES_KEY, JSON.stringify(map));
-      } catch {}
+
+        // 서버에도 저장 (동기화)
+        const serverData = {
+          sectorOverrides: map,
+          customStocks: JSON.parse(localStorage.getItem(CUSTOM_STOCKS_KEY) || '{}')
+        };
+        const saved = await saveStocksToServer(serverData);
+        if (saved) {
+          console.log('서버에 종목 데이터가 저장되었습니다.');
+        } else {
+          console.warn('서버 저장 실패, localStorage에만 저장되었습니다.');
+        }
+      } catch (error) {
+        console.error('종목 저장 실패:', error);
+      }
 
       rebuildAllStocks();
       renderSectorList();
@@ -2718,12 +2839,14 @@
     });
 
     // 초기 로드
-    applyCustomStocksFromStorage();
-    rebuildAllStocks(); // 초기화 시 총 종목 수 업데이트
-    renderSectorList();
-    // 기존에 표시된 모든 뉴스 삭제
-    clearAllNews();
-    loadNews();
+    (async () => {
+      await applyCustomStocksFromStorage();
+      rebuildAllStocks(); // 초기화 시 총 종목 수 업데이트
+      renderSectorList();
+      // 기존에 표시된 모든 뉴스 삭제
+      clearAllNews();
+      loadNews();
+    })();
 
     // 자동 새로고침 (10분마다)
     setInterval(refreshNews, 10 * 60 * 1000);

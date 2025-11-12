@@ -37,3 +37,6 @@ build/
 *.temp
 .cache/
 
+# Server data files
+stocks_data.json
+
