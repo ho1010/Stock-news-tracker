@@ -169,6 +169,16 @@
       color: #667eea;
     }
 
+    .desktop-only {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .desktop-only {
+        display: none !important;
+      }
+    }
+
     .content {
       display: grid;
       grid-template-columns: 250px 1fr;
@@ -511,27 +521,140 @@
       color: #dc3545;
     }
 
+    /* 모바일 간소화 스타일 */
+    .mobile-simplified {
+      display: none;
+    }
+
+    .sector-chips {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      flex-wrap: wrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sector-chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      white-space: nowrap;
+      border: 2px solid #dee2e6;
+      background: white;
+      color: #495057;
+    }
+
+    .sector-chip:hover {
+      border-color: #667eea;
+      background: #eef2ff;
+    }
+
+    .sector-chip.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+    }
+
+    .sector-chip .count {
+      margin-left: 6px;
+      font-size: 0.85em;
+      opacity: 0.8;
+    }
+
     @media (max-width: 768px) {
+      /* 모바일에서 사이드바 숨기기 */
+      .sidebar {
+        display: none !important;
+      }
+
       .content {
         grid-template-columns: 1fr;
       }
 
-      .sidebar {
-        max-height: 300px;
-        border-right: none;
-        border-bottom: 1px solid #dee2e6;
+      /* 헤더 간소화 */
+      .header h1 {
+        font-size: 1.4em;
       }
 
+      .header p {
+        display: none;
+      }
+
+      /* 컨트롤 간소화 */
       .controls {
         flex-direction: column;
+        padding: 12px;
+        gap: 8px;
       }
 
       .search-box {
         width: 100%;
+        min-width: auto;
       }
 
-      select, .btn {
-        width: 100%;
+      /* 섹터 드롭다운 숨기기 (칩으로 대체) */
+      #sectorFilter {
+        display: none;
+      }
+
+      /* 시간 필터 숨기기 */
+      #timeFilter {
+        display: none;
+      }
+
+      /* 초기화 버튼 숨기기 */
+      .controls .btn-secondary {
+        display: none;
+      }
+
+      /* 알림/종목 관리 버튼 작게 */
+      .btn-ghost {
+        padding: 10px 16px;
+        font-size: 0.9em;
+      }
+
+      /* 통계 카드 간소화 (2개만 표시) */
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 8px 12px;
+      }
+
+      .stat-card {
+        padding: 10px;
+      }
+
+      .stat-card .value {
+        font-size: 1.2em;
+      }
+
+      /* 섹터 칩 표시 */
+      .sector-chips {
+        display: flex;
+      }
+
+      /* 뉴스 컨테이너 패딩 조정 */
+      .news-container {
+        padding: 12px;
+      }
+
+      /* 뉴스 카드 간소화 */
+      .news-card {
+        padding: 16px;
+      }
+
+      .news-title {
+        font-size: 1.1em;
+      }
+
+      .news-summary {
+        font-size: 0.9em;
+        -webkit-line-clamp: 2;
       }
 
       /* 종목 관리 모달 모바일 반응형 */
@@ -577,11 +700,11 @@
         <span class="search-icon">🔍</span>
       </div>
       
-      <select id="sectorFilter">
+      <select id="sectorFilter" class="desktop-only">
         <option value="all">전체 섹터</option>
       </select>
 
-      <select id="timeFilter">
+      <select id="timeFilter" class="desktop-only">
         <option value="today">오늘</option>
         <option value="week">이번 주</option>
         <option value="month">이번 달</option>
@@ -589,10 +712,10 @@
       </select>
 
       <button class="btn btn-primary" onclick="searchNews()">
-        🔍 뉴스 검색
+        🔍 검색
       </button>
 
-      <button class="btn btn-secondary" onclick="resetFilters()">
+      <button class="btn btn-secondary desktop-only" onclick="resetFilters()">
         🔄 초기화
       </button>
 
@@ -614,17 +737,20 @@
         <div class="label">오늘 뉴스</div>
         <div class="value" id="todayNews">0</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card desktop-only">
         <div class="label">금일 뉴스 많은 섹터</div>
         <div class="value" id="topSector" style="font-size: 0.9em;">-</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card desktop-only">
         <div class="label">마지막 업데이트</div>
         <div class="value" style="font-size: 1em;" id="lastUpdate">-</div>
       </div>
     </div>
 
     <div class="filter-tags" id="filterTags"></div>
+
+    <!-- 모바일용 섹터 칩 -->
+    <div class="sector-chips" id="sectorChips"></div>
 
     <div class="content">
       <div class="sidebar">
@@ -1545,6 +1671,7 @@
       const sectorList = document.getElementById('sectorList');
       const sectorFilter = document.getElementById('sectorFilter');
       const notifSectorSelect = document.getElementById('notifSector');
+      const sectorChips = document.getElementById('sectorChips');
       
       // 하노이 시간 기준 전일 뉴스 기반 카운트 계산 (전날 오전 10시 ~ 금일 오전 10시)
       const sectorCounts = sectors.map(sector => {
@@ -1560,6 +1687,7 @@
       let html = `<li class="sector-item ${currentSector==='all' ? 'active' : ''}" onclick="selectSector('all')"><span>전체 섹터</span><span class="sector-count">${totalCount}</span></li>`;
       let optionsHtml = '<option value="all">전체 섹터</option>';
       let notifOptionsHtml = '<option value="all">전체 섹터</option>';
+      let chipsHtml = `<div class="sector-chip ${currentSector==='all' ? 'active' : ''}" onclick="selectSector('all')">전체<span class="count">${totalCount}</span></div>`;
       
       sectors.forEach((sector, idx) => {
         const newsCount = sectorCounts[idx];
@@ -1570,14 +1698,19 @@
         </li>`;
         optionsHtml += `<option value="${idx}">${sector.name}</option>`;
         notifOptionsHtml += `<option value="${idx}">${sector.name}</option>`;
+        
+        // 모바일용 칩 생성 (섹터명 간소화)
+        const shortName = sector.name.split('(')[0].trim();
+        chipsHtml += `<div class="sector-chip ${activeCls}" onclick="selectSector(${idx})">${shortName}<span class="count">${newsCount}</span></div>`;
       });
       
       sectorList.innerHTML = html;
-      sectorFilter.innerHTML = optionsHtml;
+      if (sectorFilter) sectorFilter.innerHTML = optionsHtml;
       if (notifSectorSelect) notifSectorSelect.innerHTML = notifOptionsHtml;
+      if (sectorChips) sectorChips.innerHTML = chipsHtml;
 
       // 현재 선택 상태 유지 및 총 개수 갱신
-      sectorFilter.value = currentSector === 'all' ? 'all' : String(currentSector);
+      if (sectorFilter) sectorFilter.value = currentSector === 'all' ? 'all' : String(currentSector);
       if (notifSectorSelect) notifSectorSelect.value = currentSector === 'all' ? 'all' : String(currentSector);
       // 총 추적 종목 수는 rebuildAllStocks()에서 업데이트됨
     }
@@ -1585,16 +1718,29 @@
     // 섹터 선택
     function selectSector(index) {
       const items = document.querySelectorAll('.sector-item');
+      const chips = document.querySelectorAll('.sector-chip');
+      
       items.forEach(item => item.classList.remove('active'));
+      chips.forEach(chip => chip.classList.remove('active'));
       
       if (index === 'all') {
         if (items[0]) items[0].classList.add('active');
+        if (chips[0]) chips[0].classList.add('active');
         currentSector = 'all';
         document.getElementById('newsTitle').textContent = '전체 섹터 최신 뉴스';
       } else {
         if (items[index + 1]) items[index + 1].classList.add('active');
+        if (chips[index + 1]) chips[index + 1].classList.add('active');
         currentSector = index;
         document.getElementById('newsTitle').textContent = sectors[index].name + ' 뉴스';
+      }
+      
+      // 모바일에서 섹터 칩 스크롤 (선택된 칩이 보이도록)
+      if (window.innerWidth <= 768 && chips.length > 0) {
+        const activeChip = chips[index === 'all' ? 0 : index + 1];
+        if (activeChip) {
+          activeChip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
       }
       
       loadNews();
