@@ -550,6 +550,37 @@
       color: #495057;
     }
 
+    /* 모바일용 섹터 칩 그리드 */
+    @media (max-width: 768px) {
+      .sector-chips {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        padding: 10px 12px;
+        max-height: none;
+        overflow: visible;
+      }
+
+      .sector-chip {
+        padding: 6px 10px;
+        font-size: 0.75em;
+        text-align: center;
+        white-space: normal;
+        word-break: break-word;
+        min-height: 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .sector-chip .count {
+        margin-left: 0;
+        margin-top: 2px;
+        font-size: 0.8em;
+      }
+    }
+
     .sector-chip:hover {
       border-color: #667eea;
       background: #eef2ff;
@@ -588,14 +619,47 @@
 
       /* 컨트롤 간소화 */
       .controls {
-        flex-direction: column;
-        padding: 12px;
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 10px 12px;
         gap: 8px;
       }
 
-      .search-box {
+      /* 검색 박스 */
+      .controls > .search-box {
+        order: 1;
         width: 100%;
         min-width: auto;
+      }
+
+      /* 검색, 알림, 종목관리를 한 줄에 배치 */
+      .mobile-buttons-row {
+        order: 2;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+      }
+
+      .mobile-buttons-row .btn {
+        width: 100%;
+        padding: 10px 6px;
+        font-size: 0.8em;
+        white-space: nowrap;
+      }
+
+      .mobile-buttons-row .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      /* 데스크톱용 알림/종목관리 버튼 숨기기 */
+      .controls > .btn-ghost.desktop-only {
+        display: none !important;
+      }
+
+      /* 데스크톱용 검색 버튼 숨기기 */
+      .controls > .btn-primary.desktop-only {
+        display: none !important;
       }
 
       /* 섹터 드롭다운 숨기기 (칩으로 대체) */
@@ -619,24 +683,28 @@
         font-size: 0.9em;
       }
 
-      /* 통계 카드 간소화 (2개만 표시) */
+      /* 통계 카드 간소화 (2개만 표시, 높이 축소) */
       .stats {
         grid-template-columns: repeat(2, 1fr);
-        padding: 8px 12px;
+        padding: 6px 10px;
+        gap: 6px;
       }
 
       .stat-card {
-        padding: 10px;
+        padding: 6px 8px;
+        min-height: auto;
+      }
+
+      .stat-card .label {
+        font-size: 0.75em;
+        margin-bottom: 4px;
       }
 
       .stat-card .value {
-        font-size: 1.2em;
+        font-size: 1em;
+        line-height: 1.2;
       }
 
-      /* 섹터 칩 표시 */
-      .sector-chips {
-        display: flex;
-      }
 
       /* 뉴스 컨테이너 패딩 조정 */
       .news-container {
@@ -711,7 +779,7 @@
         <option value="all">전체</option>
       </select>
 
-      <button class="btn btn-primary" onclick="searchNews()">
+      <button class="btn btn-primary desktop-only" onclick="searchNews()">
         🔍 검색
       </button>
 
@@ -719,11 +787,23 @@
         🔄 초기화
       </button>
 
-      <button class="btn btn-ghost" onclick="openNotifications()" title="알림 설정">
+      <div class="mobile-buttons-row">
+        <button class="btn btn-primary" onclick="searchNews()">
+          🔍 검색
+        </button>
+        <button class="btn btn-ghost" onclick="openNotifications()" title="알림 설정">
+          🔔 알림
+        </button>
+        <button class="btn btn-ghost" onclick="openManageStocks()" title="종목 추가/삭제">
+          🛠 종목 관리
+        </button>
+      </div>
+
+      <button class="btn btn-ghost desktop-only" onclick="openNotifications()" title="알림 설정">
         🔔 알림
       </button>
 
-      <button class="btn btn-ghost" onclick="openManageStocks()" title="종목 추가/삭제">
+      <button class="btn btn-ghost desktop-only" onclick="openManageStocks()" title="종목 추가/삭제">
         🛠 종목 관리
       </button>
     </div>
